@@ -1,13 +1,13 @@
-local renderers = require("diagram/renderers")
-local ts_query = require("vim.treesitter.query")
+local renderers = require('diagram/renderers')
+local ts_query = require('vim.treesitter.query')
 
 ---@type vim.treesitter.Query
 local query = nil
 
 ---@class Integration
 local M = {
-  id = "markdown",
-  filetypes = { "markdown" },
+  id = 'markdown',
+  filetypes = { 'markdown' },
   renderers = {
     renderers.mermaid,
     renderers.plantuml,
@@ -18,11 +18,14 @@ local M = {
 
 M.query_buffer_diagrams = function(bufnr)
   if not query then
-    query = ts_query.parse("markdown", "(fenced_code_block (info_string) @info (code_fence_content) @code)")
+    query = ts_query.parse(
+      'markdown',
+      '(fenced_code_block (info_string) @info (code_fence_content) @code)'
+    )
   end
 
   local buf = bufnr or vim.api.nvim_get_current_buf()
-  local parser = vim.treesitter.get_parser(buf, "markdown")
+  local parser = vim.treesitter.get_parser(buf, 'markdown')
   parser:parse(true)
 
   local root = parser:parse()[1]:root()
@@ -36,11 +39,14 @@ M.query_buffer_diagrams = function(bufnr)
   for id, node in matches do
     local key = query.captures[id]
     local value = vim.treesitter.get_node_text(node, bufnr)
-    if node:parent():parent() and node:parent():parent():type() == "block_quote" then
-      value = value:gsub("\n>", "\n"):gsub("^>", "")
+    if
+      node:parent():parent()
+      and node:parent():parent():type() == 'block_quote'
+    then
+      value = value:gsub('\n>', '\n'):gsub('^>', '')
     end
 
-    if key == "info" then
+    if key == 'info' then
       ---@diagnostic disable-next-line: unused-local
       local start_row, _start_col, end_row, end_col = node:range()
       current_range = {
@@ -52,10 +58,10 @@ M.query_buffer_diagrams = function(bufnr)
       current_language = value
     else
       if
-        current_language == "mermaid"
-        or current_language == "plantuml"
-        or current_language == "d2"
-        or current_language == "gnuplot"
+        current_language == 'mermaid'
+        or current_language == 'plantuml'
+        or current_language == 'd2'
+        or current_language == 'gnuplot'
       then
         table.insert(diagrams, {
           bufnr = bufnr,

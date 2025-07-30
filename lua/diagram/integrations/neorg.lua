@@ -1,13 +1,13 @@
-local renderers = require("diagram/renderers")
-local ts_query = require("vim.treesitter.query")
+local renderers = require('diagram/renderers')
+local ts_query = require('vim.treesitter.query')
 
 ---@type vim.treesitter.Query
 local query = nil
 
 ---@class Integration
 local M = {
-  id = "neorg",
-  filetypes = { "norg" },
+  id = 'neorg',
+  filetypes = { 'norg' },
   renderers = {
     renderers.mermaid,
     renderers.plantuml,
@@ -19,7 +19,7 @@ local M = {
 M.query_buffer_diagrams = function(bufnr)
   if not query then
     query = ts_query.parse(
-      "norg",
+      'norg',
       [[
       (ranged_verbatim_tag
         name: (tag_name) @tag_name
@@ -31,7 +31,7 @@ M.query_buffer_diagrams = function(bufnr)
   end
 
   local buf = bufnr or vim.api.nvim_get_current_buf()
-  local parser = vim.treesitter.get_parser(buf, "norg")
+  local parser = vim.treesitter.get_parser(buf, 'norg')
   parser:parse(true)
 
   local root = parser:parse()[1]:root()
@@ -47,7 +47,7 @@ M.query_buffer_diagrams = function(bufnr)
     local key = query.captures[id]
     local value = vim.treesitter.get_node_text(node, buf)
 
-    if key == "tag_name" then
+    if key == 'tag_name' then
       local start_row, start_col, _, _ = node:range()
       current_range = {
         start_row = start_row,
@@ -55,14 +55,14 @@ M.query_buffer_diagrams = function(bufnr)
         end_row = 0,
         end_col = 0,
       }
-    elseif key == "tag_params" then
+    elseif key == 'tag_params' then
       current_language = value
-    elseif key == "content" then
+    elseif key == 'content' then
       if
-        current_language == "mermaid"
-        or current_language == "plantuml"
-        or current_language == "d2"
-        or current_language == "gnuplot"
+        current_language == 'mermaid'
+        or current_language == 'plantuml'
+        or current_language == 'd2'
+        or current_language == 'gnuplot'
       then
         local _, _, end_row, end_col = node:range()
         current_range.end_row = end_row

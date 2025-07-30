@@ -1,15 +1,15 @@
-local image_nvim = require("image")
+local image_nvim = require('image')
 
 local M = {}
 
 local function show_loading_notification(diagram_type)
-  vim.notify("Loading " .. diagram_type .. " diagram...", vim.log.levels.INFO, {
+  vim.notify('Loading ' .. diagram_type .. ' diagram...', vim.log.levels.INFO, {
     timeout = 5000,
   })
 end
 
 local function show_ready_notification()
-  vim.notify("✓ Diagram ready", vim.log.levels.INFO, {
+  vim.notify('✓ Diagram ready', vim.log.levels.INFO, {
     replace = true,
     timeout = 1500,
   })
@@ -24,7 +24,7 @@ local get_extended_range = function(bufnr, diagram)
   -- Look backwards from start_row to find the opening ```
   for i = start_row, 0, -1 do
     local line = lines[i + 1] -- Lua is 1-indexed, TreeSitter is 0-indexed
-    if line and line:match("^%s*```") then
+    if line and line:match('^%s*```') then
       start_row = i
       break
     end
@@ -33,7 +33,7 @@ local get_extended_range = function(bufnr, diagram)
   -- Look forwards to find the closing ```
   for i = end_row, #lines - 1 do
     local line = lines[i + 1] -- Lua is 1-indexed, TreeSitter is 0-indexed
-    if line and line:match("^%s*```%s*$") then
+    if line and line:match('^%s*```%s*$') then
       end_row = i
       break
     end
@@ -72,7 +72,9 @@ local get_diagram_at_cursor = function(bufnr, integrations)
     -- Expand the detection range to include the entire code block
     local extended_range = get_extended_range(bufnr, diagram)
 
-    if row >= extended_range.start_row and row <= extended_range.end_row then return diagram end
+    if row >= extended_range.start_row and row <= extended_range.end_row then
+      return diagram
+    end
   end
 
   return nil
@@ -105,7 +107,10 @@ M.show_diagram_hover = function(diagram, integrations, renderer_options)
   end
 
   if not renderer then
-    vim.notify("No renderer found for " .. diagram.renderer_id, vim.log.levels.ERROR)
+    vim.notify(
+      'No renderer found for ' .. diagram.renderer_id,
+      vim.log.levels.ERROR
+    )
     return
   end
 
@@ -115,7 +120,10 @@ M.show_diagram_hover = function(diagram, integrations, renderer_options)
 
   local function show_in_tab()
     if vim.fn.filereadable(renderer_result.file_path) == 0 then
-      vim.notify("Diagram file not found: " .. renderer_result.file_path, vim.log.levels.ERROR)
+      vim.notify(
+        'Diagram file not found: ' .. renderer_result.file_path,
+        vim.log.levels.ERROR
+      )
       return
     end
 
@@ -123,23 +131,23 @@ M.show_diagram_hover = function(diagram, integrations, renderer_options)
     show_ready_notification()
 
     -- Create a new tab for better image.nvim support
-    vim.cmd("tabnew")
+    vim.cmd('tabnew')
     local buf = vim.api.nvim_get_current_buf()
     local win = vim.api.nvim_get_current_win()
 
     -- Set buffer options
-    vim.api.nvim_buf_set_name(buf, diagram.renderer_id .. " diagram")
-    vim.bo[buf].buftype = "nofile"
-    vim.bo[buf].bufhidden = "wipe"
+    vim.api.nvim_buf_set_name(buf, diagram.renderer_id .. ' diagram')
+    vim.bo[buf].buftype = 'nofile'
+    vim.bo[buf].bufhidden = 'wipe'
     vim.bo[buf].swapfile = false
 
     -- Add header content
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-      "# " .. diagram.renderer_id:upper() .. " Diagram",
-      "",
+      '# ' .. diagram.renderer_id:upper() .. ' Diagram',
+      '',
       "Press 'q' to close this tab",
       "Press 'o' to open image with system viewer",
-      "",
+      '',
     })
 
     -- Try to render the image
@@ -157,24 +165,27 @@ M.show_diagram_hover = function(diagram, integrations, renderer_options)
     else
       -- Fallback if image.nvim fails
       vim.api.nvim_buf_set_lines(buf, -1, -1, false, {
-        "Image display failed. File: " .. renderer_result.file_path,
+        'Image display failed. File: ' .. renderer_result.file_path,
       })
     end
 
     -- Keymaps for the diagram tab
-    vim.keymap.set("n", "q", function()
+    vim.keymap.set('n', 'q', function()
       if image then image:clear() end
-      vim.cmd("tabclose")
-    end, { buffer = buf, desc = "Close diagram tab" })
+      vim.cmd('tabclose')
+    end, { buffer = buf, desc = 'Close diagram tab' })
 
-    vim.keymap.set("n", "<Esc>", function()
+    vim.keymap.set('n', '<Esc>', function()
       if image then image:clear() end
-      vim.cmd("tabclose")
-    end, { buffer = buf, desc = "Close diagram tab" })
+      vim.cmd('tabclose')
+    end, { buffer = buf, desc = 'Close diagram tab' })
 
-    vim.keymap.set("n", "o", function()
-      vim.ui.open(renderer_result.file_path)
-    end, { buffer = buf, desc = "Open image with system viewer" })
+    vim.keymap.set(
+      'n',
+      'o',
+      function() vim.ui.open(renderer_result.file_path) end,
+      { buffer = buf, desc = 'Open image with system viewer' }
+    )
   end
 
   if renderer_result.job_id then
@@ -207,7 +218,7 @@ M.hover_at_cursor = function(integrations, renderer_options)
   local diagram = get_diagram_at_cursor(bufnr, integrations)
 
   if not diagram then
-    vim.notify("No diagram found at cursor", vim.log.levels.INFO)
+    vim.notify('No diagram found at cursor', vim.log.levels.INFO)
     return
   end
 
