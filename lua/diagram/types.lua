@@ -5,6 +5,7 @@
 ---@class PluginOptions
 ---@field integrations Integration[]
 ---@field renderer_options table<string, any>
+---@field events table<string, string[]>
 
 ---@class Renderer<RenderOptions>
 ---@field id string
