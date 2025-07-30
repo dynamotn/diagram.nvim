@@ -91,8 +91,9 @@ local render_buffer = function(bufnr, winnr, integration)
       local image = image_nvim.from_file(renderer_result.file_path, {
         buffer = bufnr,
         window = winnr,
-        with_virtual_padding = true,
-        inline = true,
+        with_virtual_padding = diagram.with_virtual_padding == nil and true
+          or diagram.with_virtual_padding,
+        inline = diagram.inline == nil and true or diagram.inline,
         x = diagram_col,
         y = diagram_row,
         render_offset_top = 1,
@@ -100,7 +101,7 @@ local render_buffer = function(bufnr, winnr, integration)
       diagram.image = image
 
       table.insert(state.diagrams, diagram)
-      image:render()
+      if image then image:render() end
     end
 
     if renderer_result.job_id then
