@@ -7,10 +7,14 @@
 ---@field renderer_options table<string, any>
 ---@field events table<string, string[]>
 
----@class Renderer<RenderOptions>
+---@class RenderResult
+---@field file_path string
+---@field job_id number
+
+---@class Renderer<table>
 ---@field id string
 --- renders to a temp file and returns the path
----@field render fun(source: string, options?: RenderOptions): string
+---@field render fun(source: string, options?: table): RenderResult
 
 ---@class IntegrationOptions
 ---@field filetypes string[]
@@ -27,3 +31,5 @@
 ---@field renderer_id string
 ---@field source string
 ---@field image Image|nil
+---@field with_virtual_padding boolean|nil
+---@field inline boolean|nil
