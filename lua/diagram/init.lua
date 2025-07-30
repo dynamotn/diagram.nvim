@@ -120,6 +120,7 @@ local setup = function(opts)
     state.renderer_options,
     opts.renderer_options or {}
   )
+  state.events = vim.tbl_deep_extend('force', state.events, opts.events or {})
 
   local current_bufnr = vim.api.nvim_get_current_buf()
   local current_winnr = vim.api.nvim_get_current_win()
@@ -129,9 +130,8 @@ local setup = function(opts)
     -- render
     vim.api.nvim_create_autocmd(state.events.render_buffer, {
       buffer = bufnr,
-      callback = function(buf_ev)
-        local winnr = buf_ev.event == 'BufWinEnter' and buf_ev.winnr
-          or vim.api.nvim_get_current_win()
+      callback = function(_)
+        local winnr = vim.api.nvim_get_current_win()
         render_buffer(bufnr, winnr, integration)
       end,
     })
