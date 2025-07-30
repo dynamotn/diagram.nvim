@@ -1,11 +1,11 @@
-local image_nvim = require("image")
-local integrations = require("diagram/integrations")
+local image_nvim = require('image')
+local integrations = require('diagram/integrations')
 
 ---@class State
 local state = {
   events = {
-    render_buffer = { "InsertLeave", "BufWinEnter", "TextChanged" },
-    clear_buffer = {"BufLeave"},
+    render_buffer = { 'InsertLeave', 'BufWinEnter', 'TextChanged' },
+    clear_buffer = { 'BufLeave' },
   },
   renderer_options = {
     mermaid = {
@@ -35,7 +35,9 @@ local state = {
 
 local clear_buffer = function(bufnr)
   for _, diagram in ipairs(state.diagrams) do
-    if diagram.bufnr == bufnr and diagram.image ~= nil then diagram.image:clear() end
+    if diagram.bufnr == bufnr and diagram.image ~= nil then
+      diagram.image:clear()
+    end
   end
 end
 
@@ -54,7 +56,10 @@ local render_buffer = function(bufnr, winnr, integration)
         break
       end
     end
-    assert(renderer, "diagram: cannot find renderer with id `" .. diagram.renderer_id .. "`")
+    assert(
+      renderer,
+      'diagram: cannot find renderer with id `' .. diagram.renderer_id .. '`'
+    )
 
     local renderer_options = state.renderer_options[renderer.id] or {}
     local renderer_result = renderer.render(diagram.source, renderer_options)
@@ -64,9 +69,7 @@ local render_buffer = function(bufnr, winnr, integration)
 
       local diagram_col = diagram.range.start_col
       local diagram_row = diagram.range.start_row
-      if vim.bo[bufnr].filetype == "norg" then
-        diagram_row = diagram_row - 1
-      end
+      if vim.bo[bufnr].filetype == 'norg' then diagram_row = diagram_row - 1 end
 
       local image = image_nvim.from_file(renderer_result.file_path, {
         buffer = bufnr,
@@ -86,18 +89,20 @@ local render_buffer = function(bufnr, winnr, integration)
       -- Use a timer to poll the job's completion status every 100ms.
       local timer = vim.loop.new_timer()
       if not timer then return end
-      timer:start(0, 100, vim.schedule_wrap(function()
-        local result = vim.fn.jobwait({ renderer_result.job_id }, 0)
-        if result[1] ~= -1 then
-          if timer:is_active() then
-            timer:stop()
+      timer:start(
+        0,
+        100,
+        vim.schedule_wrap(function()
+          local result = vim.fn.jobwait({ renderer_result.job_id }, 0)
+          if result[1] ~= -1 then
+            if timer:is_active() then timer:stop() end
+            if not timer:is_closing() then
+              timer:close()
+              render_image()
+            end
           end
-          if not timer:is_closing() then
-            timer:close()
-            render_image()
-          end
-        end
-      end))
+        end)
+      )
     else
       render_image()
     end
@@ -106,11 +111,15 @@ end
 
 ---@param opts PluginOptions
 local setup = function(opts)
-  local ok = pcall(require, "image")
-  if not ok then error("diagram: missing dependency `3rd/image.nvim`") end
+  local ok = pcall(require, 'image')
+  if not ok then error('diagram: missing dependency `3rd/image.nvim`') end
 
   state.integrations = opts.integrations or state.integrations
-  state.renderer_options = vim.tbl_deep_extend("force", state.renderer_options, opts.renderer_options or {})
+  state.renderer_options = vim.tbl_deep_extend(
+    'force',
+    state.renderer_options,
+    opts.renderer_options or {}
+  )
 
   local current_bufnr = vim.api.nvim_get_current_buf()
   local current_winnr = vim.api.nvim_get_current_win()
@@ -121,7 +130,8 @@ local setup = function(opts)
     vim.api.nvim_create_autocmd(state.events.render_buffer, {
       buffer = bufnr,
       callback = function(buf_ev)
-        local winnr = buf_ev.event == "BufWinEnter" and buf_ev.winnr or vim.api.nvim_get_current_win()
+        local winnr = buf_ev.event == 'BufWinEnter' and buf_ev.winnr
+          or vim.api.nvim_get_current_win()
         render_buffer(bufnr, winnr, integration)
       end,
     })
@@ -130,20 +140,16 @@ local setup = function(opts)
     if state.events.clear_buffer then
       vim.api.nvim_create_autocmd(state.events.clear_buffer, {
         buffer = bufnr,
-        callback = function()
-          clear_buffer(bufnr)
-        end,
+        callback = function() clear_buffer(bufnr) end,
       })
     end
   end
 
   -- setup integrations
   for _, integration in ipairs(state.integrations) do
-    vim.api.nvim_create_autocmd("FileType", {
+    vim.api.nvim_create_autocmd('FileType', {
       pattern = integration.filetypes,
-      callback = function(ft_event)
-        setup_buffer(ft_event.buf, integration)
-      end,
+      callback = function(ft_event) setup_buffer(ft_event.buf, integration) end,
     })
 
     -- first render
@@ -155,7 +161,7 @@ local setup = function(opts)
 end
 
 local get_cache_dir = function()
-  return vim.fn.stdpath("cache") .. "/diagram-cache"
+  return vim.fn.stdpath('cache') .. '/diagram-cache'
 end
 
 return {
