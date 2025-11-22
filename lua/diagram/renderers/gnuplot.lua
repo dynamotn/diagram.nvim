@@ -21,7 +21,9 @@ vim.fn.mkdir(tmpdir, 'p')
 ---@param options GnuplotOptions
 ---@return table|nil
 M.render = function(source, options)
-  local hash = vim.fn.sha256(M.id .. ':' .. source)
+  -- Include options in cache key for proper cache invalidation
+  local options_json = vim.fn.json_encode(options)
+  local hash = vim.fn.sha256(M.id .. ':' .. source .. ':' .. options_json)
   if cache[hash] then return cache[hash] end
 
   local path = vim.fn.resolve(tmpdir .. '/' .. hash .. '.png')
@@ -104,8 +106,12 @@ M.render = function(source, options)
   -- Build command with optional cli_args
   local command_parts = { 'gnuplot' }
 
-  -- Add custom CLI arguments if provided
-  if options.cli_args and #options.cli_args > 0 then
+  -- Add custom CLI arguments if provided (with type validation)
+  if
+    options.cli_args
+    and type(options.cli_args) == 'table'
+    and #options.cli_args > 0
+  then
     vim.list_extend(command_parts, options.cli_args)
   end
 
