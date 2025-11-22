@@ -84,18 +84,16 @@ local render_buffer = function(bufnr, winnr, integration)
     local function render_image()
       if vim.fn.filereadable(renderer_result.file_path) == 0 then return end
 
-      local diagram_col = diagram.range.start_col
-      local diagram_row = diagram.range.start_row
-      if vim.bo[bufnr].filetype == 'norg' then diagram_row = diagram_row - 1 end
-
       local image = image_nvim.from_file(renderer_result.file_path, {
         buffer = bufnr,
         window = winnr,
         with_virtual_padding = diagram.with_virtual_padding == nil and true
           or diagram.with_virtual_padding,
         inline = diagram.inline == nil and true or diagram.inline,
-        x = diagram_col,
-        y = diagram_row,
+        x = diagram.range.start_col,
+        y = diagram.range.start_row,
+        width = math.abs(diagram.range.end_col - diagram.range.start_col),
+        height = math.abs(diagram.range.end_row - diagram.range.start_row),
         render_offset_top = 1,
       })
       diagram.image = image
