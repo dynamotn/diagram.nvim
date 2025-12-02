@@ -1,5 +1,3 @@
-local image_nvim = require('image')
-
 local M = {}
 
 local function show_loading_notification(diagram_type)
@@ -153,6 +151,7 @@ M.show_diagram_hover = function(diagram, integrations, renderer_options)
     })
 
     -- Try to render the image
+    local image_nvim = require('image')
     local image = image_nvim.from_file(renderer_result.file_path, {
       buffer = buf,
       window = win,

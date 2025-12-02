@@ -1,5 +1,4 @@
 local hover = require('diagram/hover')
-local image_nvim = require('image')
 local integrations = require('diagram/integrations')
 
 ---@class State
@@ -41,12 +40,20 @@ local state = {
     integrations.neorg,
   },
   diagrams = {},
+  render_timers = {},
 }
 
 local clear_buffer = function(bufnr)
-  for _, diagram in ipairs(state.diagrams) do
-    if diagram.bufnr == bufnr and diagram.image ~= nil then
-      diagram.image:clear()
+  local i = 1
+  while i <= #state.diagrams do
+    local diagram = state.diagrams[i]
+    if diagram.bufnr == bufnr then
+      if diagram.image ~= nil then
+        diagram.image:clear()
+      end
+      table.remove(state.diagrams, i)
+    else
+      i = i + 1
     end
   end
 end
@@ -57,6 +64,21 @@ end
 local render_buffer = function(bufnr, winnr, integration)
   local diagrams = integration.query_buffer_diagrams(bufnr)
   clear_buffer(bufnr)
+  
+  -- Limit max diagrams per buffer to prevent memory leaks
+  local max_diagrams_per_buffer = 50
+  local buffer_diagram_count = #diagrams
+  if buffer_diagram_count > max_diagrams_per_buffer then
+    vim.notify(
+      'Diagram.nvim: Buffer has ' .. buffer_diagram_count .. ' diagrams (max: ' .. max_diagrams_per_buffer .. '). Some diagrams will not be rendered.',
+      vim.log.levels.WARN,
+      { title = 'Diagram.nvim' }
+    )
+    for i = max_diagrams_per_buffer + 1, buffer_diagram_count do
+      diagrams[i] = nil
+    end
+  end
+  
   for _, diagram in ipairs(diagrams) do
     ---@type Renderer
     local renderer = nil
@@ -85,8 +107,11 @@ local render_buffer = function(bufnr, winnr, integration)
     if not renderer_result then goto continue end
 
     local function render_image()
+      -- Check if buffer still exists
+      if not vim.api.nvim_buf_is_valid(bufnr) then return end
       if vim.fn.filereadable(renderer_result.file_path) == 0 then return end
 
+      local image_nvim = require('image')
       local image = image_nvim.from_file(renderer_result.file_path, {
         buffer = bufnr,
         window = winnr,
@@ -162,13 +187,52 @@ local setup = function(opts)
       return
     end
 
-    vim.api.nvim_create_autocmd(state.events.render_buffer, {
-      buffer = bufnr,
-      callback = function(_)
-        local winnr = vim.api.nvim_get_current_win()
-        render_buffer(bufnr, winnr, integration)
-      end,
-    })
+    local render_with_debounce = function()
+      -- Cancel previous timer if exists
+      if state.render_timers[bufnr] then
+        state.render_timers[bufnr]:stop()
+        state.render_timers[bufnr]:close()
+        state.render_timers[bufnr] = nil
+      end
+
+      -- Create new timer with 500ms debounce for TextChanged events
+      local timer = vim.loop.new_timer()
+      if not timer then return end
+      
+      state.render_timers[bufnr] = timer
+      timer:start(
+        500,
+        0,
+        vim.schedule_wrap(function()
+          state.render_timers[bufnr] = nil
+          local winnr = vim.api.nvim_get_current_win()
+          render_buffer(bufnr, winnr, integration)
+        end)
+      )
+    end
+
+    for _, event in ipairs(state.events.render_buffer) do
+      if event == 'TextChanged' or event == 'TextChangedI' then
+        vim.api.nvim_create_autocmd(event, {
+          buffer = bufnr,
+          callback = render_with_debounce,
+        })
+      else
+        vim.api.nvim_create_autocmd(event, {
+          buffer = bufnr,
+          callback = function(_)
+            -- Cancel any pending timer for immediate events
+            if state.render_timers[bufnr] then
+              state.render_timers[bufnr]:stop()
+              state.render_timers[bufnr]:close()
+              state.render_timers[bufnr] = nil
+            end
+            local winnr = vim.api.nvim_get_current_win()
+            render_buffer(bufnr, winnr, integration)
+          end,
+        })
+      end
+    end
 
     -- clear
     if state.events.clear_buffer then
@@ -177,6 +241,12 @@ local setup = function(opts)
         callback = function() clear_buffer(bufnr) end,
       })
     end
+    
+    -- Also clear when buffer is deleted to prevent memory leak
+    vim.api.nvim_create_autocmd('BufDelete', {
+      buffer = bufnr,
+      callback = function() clear_buffer(bufnr) end,
+    })
   end
 
   -- setup integrations

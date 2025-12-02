@@ -81,9 +81,8 @@ M.render = function(source, options)
         end
       end,
       on_exit = function(job_id, exit_code, event)
-        -- local msg = string.format("Job %d exited with code %d.", job_id, exit_code)
-        -- vim.api.nvim_out_write(msg .. "\n")
-        vim.fn.rename(path .. '.new.png', path) -- HACK: rename to remove .new.png
+        os.remove(tmpsource)
+        vim.fn.rename(path .. '.new.png', path)
       end,
     }
   )

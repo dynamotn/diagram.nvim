@@ -133,11 +133,8 @@ M.render = function(source, options)
       end
     end,
     on_exit = function(job_id, exit_code, event)
-      -- Clean up temporary script file
-      vim.fn.delete(tmpsource)
+      os.remove(tmpsource)
       cache[hash] = path
-      -- local msg = string.format("Job %d exited with code %d.", job_id, exit_code)
-      -- vim.api.nvim_out_write(msg .. "\n")
     end,
   })
 
